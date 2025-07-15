@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>学校ジオゲッサー</title>
+  <style>
+    body {
+      background: #1e1e2f;
+      font-family: sans-serif;
+      color: #f0f0f0;
+      text-align: center;
+      margin: 0;
+      padding: 30px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      color: #ffc107;
+    }
+
+    #gameContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .card {
+      background: #2c2c3c;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+      width: 100%;
+    }
+
+    #photo {
+      width: 100%;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+
+    canvas {
+      border: 3px solid #555;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    #result {
+      font-size: 1.1em;
+      margin-top: 15px;
+      min-height: 4em;
+    }
+
+    button {
+      padding: 12px 24px;
+      background: #00bcd4;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover {
+      background: #0097a7;
+    }
+
+    button:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>学校ジオゲッサー</h1>
+
+  <div id="gameContainer">
+    <div class="card">
+      <img id="photo" src="" alt="写真" style="display:none;">
+    </div>
+
+    <div class="card">
+      <canvas id="mapCanvas" width="480" height="580" style="display:none;"></canvas>
+    </div>
+
+    <div id="result">ボタンを押してスタート</div>
+
+    <div>
+      <button id="startBtn">ゲーム開始</button>
+      <button id="checkBtn" style="display:none;">答え合わせ</button>
+      <button id="nextBtn" style="display:none;">次の問題へ</button>
+    </div>
+  </div>
+
+  <script>
+    const photoData = [
+      //{ photo: "photos/photo1.jpg", x: 215, y: 576 },
+      { photo: "photos/photo2.jpg", x: 291, y: 447 },
+      { photo: "photos/photo3.jpg", x: 234, y: 512 },
+      { photo: "photos/photo4.jpg", x: 220, y: 281 },
+      { photo: "photos/photo5.jpg", x: 222, y: 236 },
+      { photo: "photos/photo6.jpg", x: 145, y: 167 },
+      { photo: "photos/photo7.jpg", x: 213, y: 375 },
+      { photo: "photos/photo8.jpg", x: 301, y: 141 },
+      //{ photo: "photos/photo9.jpg", x: 222, y: 236 },
+      { photo: "photos/photo10.jpg", x: 252, y: 461 },
+      { photo: "photos/photo11.jpg", x: 306, y: 324 },
+      { photo: "photos/photo12.jpg", x: 210, y: 495 },
+      { photo: "photos/photo13.jpg", x: 209, y: 433 },
+      { photo: "photos/photo14.jpg", x: 173, y: 72 },
+      { photo: "photos/photo15.jpg", x: 194, y: 143 },
+      { photo: "photos/photo16.jpg", x: 292, y: 489 },
+      { photo: "photos/photo17.jpg", x: 213, y: 208 }
+    ];
+
+    let current = null;
+    let remaining = [...photoData];
+    let selectedX = null;
+    let selectedY = null;
+    let answered = false;
+    let correctCount = 0;
+
+    const canvas = document.getElementById("mapCanvas");
+    const ctx = canvas.getContext("2d");
+    const photo = document.getElementById("photo");
+    const result = document.getElementById("result");
+    const startBtn = document.getElementById("startBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const checkBtn = document.getElementById("checkBtn");
+
+    const mapImage = new Image();
+    mapImage.src = "images/map.jpg";
+
+    mapImage.onload = () => {
+      ctx.drawImage(mapImage, 0, 0);
+    };
+
+    function startGame() {
+      remaining = [...photoData];
+      correctCount = 0;
+      nextQuestion();
+    }
+
+    function nextQuestion() {
+      if (remaining.length === 0) {
+        //result.innerHTML = "ゲーム終了。すべての問題を終えました。";
+        //photo.style.display = "none";
+        //canvas.style.display = "none";
+        //nextBtn.style.display = "none";
+        //checkBtn.style.display = "none";
+        //startBtn.style.display = "inline";
+        showFinalResult();
+        return;
+      }
+
+      const index = Math.floor(Math.random() * remaining.length);
+      current = remaining.splice(index, 1)[0];
+
+      photo.src = current.photo;
+      photo.style.display = "inline";
+      canvas.style.display = "inline";
+      result.innerHTML = "地図をクリックして、写真の場所を選んでください。";
+
+      selectedX = null;
+      selectedY = null;
+      answered = false;
+
+      checkBtn.style.display = "inline";
+      nextBtn.style.display = "none";
+      startBtn.style.display = "none";
+
+      drawMap();
+    }
+
+    function drawMap() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(mapImage, 0, 0);
+
+      if (selectedX !== null && selectedY !== null) {
+        ctx.beginPath();
+        ctx.arc(selectedX, selectedY, 8, 0, Math.PI * 2);
+        ctx.fillStyle = "red";
+        ctx.fill();
+      }
+
+      if (answered) {
+        ctx.beginPath();
+        ctx.arc(current.x, current.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = "blue";
+        ctx.fill();
+      }
+    }
+
+    canvas.addEventListener("click", (e) => {
+      if (!current || answered) return;
+
+      const rect = canvas.getBoundingClientRect();
+      selectedX = e.clientX - rect.left;
+      selectedY = e.clientY - rect.top;
+
+      drawMap();
+      result.innerHTML = `選択中: (${Math.round(selectedX)}, ${Math.round(selectedY)})`;
+    });
+
+    checkBtn.addEventListener("click", () => {
+      if (selectedX === null || selectedY === null || answered) return;
+
+      answered = true;
+
+      const dx = selectedX - current.x;
+      const dy = selectedY - current.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const score = Math.max(0, 100 - distance);
+
+      if (score >= 85) {
+        correctCount++;
+      }
+
+      drawMap();
+
+      result.innerHTML = `
+        あなたの答え：(${Math.round(selectedX)}, ${Math.round(selectedY)})<br>
+        正解：(${current.x}, ${current.y})<br>
+        距離：${distance.toFixed(1)} px<br>
+        スコア：${score.toFixed(1)} 点<br>
+        ${score >= 85 ? "<strong style='color:lime'>正解！</strong>" : "<strong style='color:orange'>不正解</strong>"}
+      `;
+
+      checkBtn.style.display = "none";
+      nextBtn.style.display = "inline";
+    });
+
+    nextBtn.addEventListener("click", nextQuestion);
+    startBtn.addEventListener("click", startGame);
+
+    function showFinalResult() {
+      photo.style.display = "none";
+      canvas.style.display = "none";
+      checkBtn.style.display = "none";
+      nextBtn.style.display = "none";
+      startBtn.style.display = "inline";
+
+      result.innerHTML = `
+        🎉 全問終了！<br><br>
+        正解数：<strong style="font-size: 1.4em; color: #00ffcc">${correctCount}</strong> / ${photoData.length} 問
+      `;
+    }
+  </script>
+
+</body>
+</html>
